@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2563eb">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>GAS Web App Studio & Viewer</title>
+    <link id="pwa-manifest" rel="manifest" href="">
+    <link id="pwa-icon" rel="icon" type="image/svg+xml" href="">
+    <link id="apple-touch-icon" rel="apple-touch-icon" href="">
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        slate: {
+                            850: '#151e2e',
+                            900: '#0f172a',
+                            950: '#020617',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Custom Scrollbar for sleek UI */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+        
+        /* Smooth transition for iframe device resizing */
+        #iframe-wrapper {
+            transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), height 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 h-screen flex flex-col overflow-hidden selection:bg-blue-500 selection:text-white transition-colors duration-200">
+
+    <!-- Top Navigation & Control Bar -->
+    <header class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-4 py-2.5 flex items-center justify-between gap-3 z-20 shadow-sm">
+        
+        <!-- Brand Info -->
+        <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                <i data-lucide="app-window" class="w-4 h-4"></i>
+            </div>
+            <div>
+                <h1 class="font-semibold text-sm leading-tight tracking-tight">Apps Script Web App</h1>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400 leading-tight flex items-center gap-1.5">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span>Live Deployment</span>
+                </p>
+            </div>
+        </div>
+
+        <!-- Viewport Controls & Quick Actions -->
+        <div class="flex items-center gap-2">
+            <!-- Device Switcher -->
+            <div class="flex items-center bg-slate-100 dark:bg-slate-850 p-1 rounded-xl border border-slate-200/80 dark:border-slate-800">
+                <button type="button" data-device="desktop" class="device-btn active px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm transition-all" title="Desktop Full View">
+                    <i data-lucide="monitor" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">Desktop</span>
+                </button>
+                <button type="button" data-device="tablet" class="device-btn px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" title="Tablet View (768px)">
+                    <i data-lucide="tablet" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">Tablet</span>
+                </button>
+                <button type="button" data-device="mobile" class="device-btn px-2.5 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1.5 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all" title="Mobile View (390px)">
+                    <i data-lucide="smartphone" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">Mobile</span>
+                </button>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex items-center gap-1">
+                <button type="button" id="install-apk-btn" class="px-2.5 py-1.5 rounded-xl text-xs font-medium bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-sm transition-colors" title="Install on Mobile / Get APK">
+                    <i data-lucide="smartphone-nfc" class="w-3.5 h-3.5"></i>
+                    <span class="hidden sm:inline">Install App</span>
+                </button>
+                <button type="button" id="reload-btn" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Reload Web App">
+                    <i data-lucide="rotate-cw" class="w-4 h-4"></i>
+                </button>
+                <a id="external-link-btn" href="https://script.google.com/macros/s/AKfycbyS46qhE-iq4Fj6Oo3IR0nigyYUDv-Odz0cwIBsDbO0OgGcgCSlVzXHlZDHZq8HmVE/exec" target="_blank" rel="noopener noreferrer" class="p-2 rounded-xl text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Open in New Tab">
+                    <i data-lucide="external-link" class="w-4 h-4"></i>
+                </a>
+                <div class="h-4 w-[1px] bg-slate-200 dark:bg-slate-800 mx-1"></div>
+                <button type="button" id="help-btn" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Troubleshoot Blank Screen">
+                    <i data-lucide="help-circle" class="w-4 h-4"></i>
+                </button>
+                <button type="button" id="theme-toggle" class="p-2 rounded-xl text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" title="Toggle Dark Mode">
+                    <i data-lucide="moon" class="w-4 h-4 dark:hidden"></i>
+                    <i data-lucide="sun" class="w-4 h-4 hidden dark:block"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Workspace -->
+    <main class="flex-1 bg-slate-100/80 dark:bg-slate-950 flex flex-col items-center justify-center p-0 sm:p-3 overflow-hidden relative">
+        
+        <!-- Iframe Container -->
+        <div id="iframe-wrapper" class="w-full h-full bg-white dark:bg-slate-900 sm:rounded-2xl sm:border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden relative flex flex-col">
+            <!-- Loading Overlay -->
+            <div id="iframe-loader" class="absolute inset-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xs flex flex-col items-center justify-center z-10 transition-opacity duration-300">
+                <div class="w-9 h-9 border-3 border-blue-600 border-t-transparent rounded-full animate-spin mb-3"></div>
+                <p class="text-xs font-medium text-slate-600 dark:text-slate-300">Loading your Google Apps Script Web App...</p>
+                <button id="troubleshoot-link" class="mt-4 text-[11px] text-blue-600 dark:text-blue-400 hover:underline">Taking too long or blank screen?</button>
+            </div>
+
+            <!-- Actual Web App Iframe -->
+            <iframe 
+                id="gas-iframe" 
+                src="https://script.google.com/macros/s/AKfycbyS46qhE-iq4Fj6Oo3IR0nigyYUDv-Odz0cwIBsDbO0OgGcgCSlVzXHlZDHZq8HmVE/exec"
+                class="w-full h-full border-0 bg-white"
+                sandbox="allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
+                allow="geolocation; microphone; camera; clipboard-read; clipboard-write"
+                title="Google Apps Script Web App">
+            </iframe>
+        </div>
+
+    </main>
+
+    <!-- Help / Troubleshooting Modal -->
+    <div id="help-modal" class="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2">
+                    <div class="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/60 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                        <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                    </div>
+                    <h3 class="text-base font-semibold text-slate-900 dark:text-white">Troubleshooting Display Issues</h3>
+                </div>
+                <button id="close-help-modal" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/70 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-1">
+                        <p class="font-semibold text-slate-900 dark:text-white">1. Set XFrameOptionsMode to ALLOWALL</p>
+                        <button id="copy-snippet-btn" class="text-[10px] font-medium px-2 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors">
+                            Copy Code
+                        </button>
+                    </div>
+                    <p>If your app appears blank, Google may be blocking iframe embedding. Ensure your <code class="font-mono">doGet()</code> includes:</p>
+                    <pre class="mt-2 p-2.5 rounded-lg bg-slate-900 text-slate-100 font-mono text-[11px] overflow-x-auto">function doGet(e) {
+  return HtmlService.createHtmlOutputFromFile('Index')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}</pre>
+                </div>
+
+                <div class="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/70 dark:border-slate-800">
+                    <p class="font-semibold text-slate-900 dark:text-white mb-1">2. Verify Access Permissions</p>
+                    <p>Ensure your deployment access is set to <strong>Anyone</strong>, or open it directly using the external link icon in the top-right corner.</p>
+                </div>
+            </div>
+
+            <div class="mt-5 flex justify-end gap-2">
+                <a href="https://script.google.com/macros/s/AKfycbyS46qhE-iq4Fj6Oo3IR0nigyYUDv-Odz0cwIBsDbO0OgGcgCSlVzXHlZDHZq8HmVE/exec" target="_blank" rel="noopener noreferrer" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">Open Direct Link</a>
+                <button id="got-it-help-btn" class="px-4 py-2 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Install / APK Packaging Modal -->
+    <div id="install-modal" class="fixed inset-0 bg-slate-950/50 backdrop-blur-xs z-50 hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 max-w-lg w-full p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between mb-4">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                        <i data-lucide="download" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-900 dark:text-white">Install on Android / Generate APK</h3>
+                        <p class="text-[11px] text-slate-500 dark:text-slate-400">Run your Google Apps Script as a native mobile app</p>
+                    </div>
+                </div>
+                <button id="close-install-modal" class="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                    <i data-lucide="x" class="w-4 h-4"></i>
+                </button>
+            </div>
+
+            <!-- Direct 1-Tap PWA Install Prompt (Visible if browser supports beforeinstallprompt) -->
+            <div id="native-install-box" class="hidden mb-4 p-3.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 flex items-center justify-between gap-3">
+                <div>
+                    <p class="text-xs font-semibold text-emerald-900 dark:text-emerald-200">Instant Android App Install Available</p>
+                    <p class="text-[11px] text-emerald-700 dark:text-emerald-400">Creates a standalone WebAPK on your home screen immediately.</p>
+                </div>
+                <button id="trigger-native-install" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shrink-0 shadow-sm">
+                    Install Now
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
+                <!-- Option 1: Instant WebAPK via Chrome -->
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/70 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="font-semibold text-slate-900 dark:text-white">Option 1: Instant Android WebAPK (No PC Needed)</span>
+                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">Fastest</span>
+                    </div>
+                    <ol class="list-decimal list-inside space-y-1 text-[11px]">
+                        <li>Host this HTML file on any free HTTPS host (e.g., <strong>GitHub Pages</strong>, <strong>Netlify</strong>, or <strong>Vercel</strong>).</li>
+                        <li>Open that hosted link in <strong>Google Chrome</strong> on your Android phone.</li>
+                        <li>Tap the <strong>⋮ (Three Dots)</strong> menu &rarr; <strong>Add to Home screen</strong> &rarr; <strong>Install</strong>. Android automatically compiles and installs it as a real app!</li>
+                    </ol>
+                </div>
+
+                <!-- Option 2: Downloadable .APK File -->
+                <div class="p-3.5 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/70 dark:border-slate-800">
+                    <div class="flex items-center justify-between mb-1.5">
+                        <span class="font-semibold text-slate-900 dark:text-white">Option 2: Download a Standalone .APK File</span>
+                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300">Shareable File</span>
+                    </div>
+                    <p class="text-[11px] mb-2">To get a physical <code class="font-mono">.apk</code> file you can send via WhatsApp or install offline:</p>
+                    <ol class="list-decimal list-inside space-y-1 text-[11px]">
+                        <li>Host this file online (or use your direct Apps Script URL below).</li>
+                        <li>Go to <strong>PWABuilder.com</strong> (by Microsoft) or <strong>WebIntoApp.com</strong>.</li>
+                        <li>Paste the URL, customize your app icon/name, and click <strong>Package for Android</strong> to download your signed <code class="font-mono">.apk</code> file.</li>
+                    </ol>
+                </div>
+
+                <!-- Quick Copy Tools -->
+                <div class="flex flex-wrap gap-2 pt-1">
+                    <button id="download-html-btn" class="flex-1 py-2 px-3 rounded-xl text-xs font-medium bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-white flex items-center justify-center gap-1.5 transition-colors">
+                        <i data-lucide="file-code" class="w-3.5 h-3.5"></i>
+                        <span>Download Viewer HTML</span>
+                    </button>
+                    <button id="copy-gas-url-btn" class="flex-1 py-2 px-3 rounded-xl text-xs font-medium bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800/60 flex items-center justify-center gap-1.5 transition-colors">
+                        <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+                        <span>Copy Apps Script URL</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-5 flex justify-end">
+                <button id="done-install-modal" class="px-4 py-2 rounded-xl text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white transition-colors">Got It</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Target Google Apps Script Web App URL
+        const WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbyS46qhE-iq4Fj6Oo3IR0nigyYUDv-Odz0cwIBsDbO0OgGcgCSlVzXHlZDHZq8HmVE/exec';
+
+        // --- Dynamic PWA Manifest & Icon Setup (Enables Android WebAPK Installation) ---
+        (function setupPWA() {
+            const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#3b82f6"/><stop offset="100%" stop-color="#4f46e5"/></linearGradient></defs><rect width="512" height="512" rx="112" fill="url(#g)"/><rect x="116" y="136" width="280" height="240" rx="32" fill="none" stroke="#ffffff" stroke-width="28"/><line x1="116" y1="208" x2="396" y2="208" stroke="#ffffff" stroke-width="28"/><circle cx="164" cy="172" r="12" fill="#ffffff"/><circle cx="204" cy="172" r="12" fill="#ffffff"/></svg>`;
+            const iconUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgIcon);
+            
+            document.getElementById('pwa-icon').href = iconUrl;
+            document.getElementById('apple-touch-icon').href = iconUrl;
+
+            const manifest = {
+                name: 'Apps Script Web App',
+                short_name: 'GAS App',
+                description: 'Standalone mobile wrapper for Google Apps Script Web App',
+                start_url: window.location.href,
+                display: 'standalone',
+                background_color: '#0f172a',
+                theme_color: '#2563eb',
+                orientation: 'any',
+                icons: [
+                    { src: iconUrl, sizes: '192x192', type: 'image/svg+xml', purpose: 'any maskable' },
+                    { src: iconUrl, sizes: '512x512', type: 'image/svg+xml', purpose: 'any maskable' }
+                ]
+            };
+            const manifestBlob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+            document.getElementById('pwa-manifest').href = URL.createObjectURL(manifestBlob);
+
+            // Minimal inline Service Worker for PWA installability criteria
+            if ('serviceWorker' in navigator && (window.location.protocol === 'https:' || window.location.hostname === 'localhost')) {
+                const swCode = `self.addEventListener('install', e => self.skipWaiting()); self.addEventListener('fetch', e => {});`;
+                const swBlob = new Blob([swCode], { type: 'application/javascript' });
+                navigator.serviceWorker.register(URL.createObjectURL(swBlob)).catch(() => {});
+            }
+        })();
+
+        // Application State
+        const state = {
+            device: 'desktop',
+            darkMode: localStorage.getItem('gas_viewer_theme') === 'dark' || 
+                      (!localStorage.getItem('gas_viewer_theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)
+        };
+
+        // DOM Elements
+        const els = {
+            html: document.documentElement,
+            deviceBtns: document.querySelectorAll('.device-btn'),
+            reloadBtn: document.getElementById('reload-btn'),
+            iframeWrapper: document.getElementById('iframe-wrapper'),
+            iframeLoader: document.getElementById('iframe-loader'),
+            gasIframe: document.getElementById('gas-iframe'),
+            helpModal: document.getElementById('help-modal'),
+            helpBtn: document.getElementById('help-btn'),
+            troubleshootLink: document.getElementById('troubleshoot-link'),
+            closeHelpModal: document.getElementById('close-help-modal'),
+            gotItHelpBtn: document.getElementById('got-it-help-btn'),
+            copySnippetBtn: document.getElementById('copy-snippet-btn'),
+            installApkBtn: document.getElementById('install-apk-btn'),
+            installModal: document.getElementById('install-modal'),
+            closeInstallModal: document.getElementById('close-install-modal'),
+            doneInstallModal: document.getElementById('done-install-modal'),
+            nativeInstallBox: document.getElementById('native-install-box'),
+            triggerNativeInstall: document.getElementById('trigger-native-install'),
+            downloadHtmlBtn: document.getElementById('download-html-btn'),
+            copyGasUrlBtn: document.getElementById('copy-gas-url-btn'),
+            themeToggle: document.getElementById('theme-toggle'),
+            toastContainer: document.getElementById('toast-container')
+        };
+
+        // --- Theme Management ---
+        function applyTheme() {
+            if (state.darkMode) {
+                els.html.classList.add('dark');
+                localStorage.setItem('gas_viewer_theme', 'dark');
+            } else {
+                els.html.classList.remove('dark');
+                localStorage.setItem('gas_viewer_theme', 'light');
+            }
+        }
+        applyTheme();
+
+        els.themeToggle.addEventListener('click', () => {
+            state.darkMode = !state.darkMode;
+            applyTheme();
+        });
+
+        // --- Custom Toast Notification ---
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            const colors = {
+                info: 'bg-slate-900 dark:bg-slate-800 text-white border-slate-700',
+                success: 'bg-emerald-600 text-white border-emerald-500'
+            };
+            toast.className = `px-4 py-2.5 rounded-xl border shadow-lg text-xs font-medium flex items-center gap-2 transform translate-y-2 opacity-0 transition-all duration-300 ${colors[type] || colors.info}`;
+            toast.textContent = message;
+            els.toastContainer.appendChild(toast);
+
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            });
+
+            setTimeout(() => {
+                toast.classList.add('translate-y-2', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+
+        // --- Iframe Load & Reload ---
+        els.gasIframe.addEventListener('load', () => {
+            els.iframeLoader.classList.add('opacity-0', 'pointer-events-none');
+        });
+
+        els.reloadBtn.addEventListener('click', () => {
+            els.iframeLoader.classList.remove('opacity-0', 'pointer-events-none');
+            els.gasIframe.src = WEB_APP_URL;
+            showToast('Reloading web app...', 'info');
+        });
+
+        // --- Responsive Viewport Switcher ---
+        function setDeviceViewport(device) {
+            state.device = device;
+            
+            els.deviceBtns.forEach(btn => {
+                const isTarget = btn.dataset.device === device;
+                if (isTarget) {
+                    btn.classList.add('bg-white', 'dark:bg-slate-800', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm');
+                    btn.classList.remove('text-slate-600', 'dark:text-slate-400');
+                } else {
+                    btn.classList.remove('bg-white', 'dark:bg-slate-800', 'text-blue-600', 'dark:text-blue-400', 'shadow-sm');
+                    btn.classList.add('text-slate-600', 'dark:text-slate-400');
+                }
+            });
+
+            if (device === 'desktop') {
+                els.iframeWrapper.style.width = '100%';
+                els.iframeWrapper.style.height = '100%';
+            } else if (device === 'tablet') {
+                els.iframeWrapper.style.width = 'min(768px, 100%)';
+                els.iframeWrapper.style.height = 'min(1024px, 100%)';
+            } else if (device === 'mobile') {
+                els.iframeWrapper.style.width = 'min(390px, 100%)';
+                els.iframeWrapper.style.height = 'min(844px, 100%)';
+            }
+        }
+
+        els.deviceBtns.forEach(btn => {
+            btn.addEventListener('click', () => setDeviceViewport(btn.dataset.device));
+        });
+
+        // --- Help Modal & Snippet Copy ---
+        function openHelpModal() {
+            els.helpModal.classList.remove('hidden');
+            els.helpModal.classList.add('flex');
+        }
+        function closeHelpModal() {
+            els.helpModal.classList.add('hidden');
+            els.helpModal.classList.remove('flex');
+        }
+
+        els.helpBtn.addEventListener('click', openHelpModal);
+        els.troubleshootLink.addEventListener('click', openHelpModal);
+        els.closeHelpModal.addEventListener('click', closeHelpModal);
+        els.gotItHelpBtn.addEventListener('click', closeHelpModal);
+
+        els.copySnippetBtn.addEventListener('click', () => {
+            const snippet = `return HtmlService.createHtmlOutputFromFile('Index').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);`;
+            const tempInput = document.createElement('textarea');
+            tempInput.value = snippet;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast('Code snippet copied!', 'success');
+        });
+
+        // --- Mobile Install & APK Guide Logic ---
+        let deferredInstallPrompt = null;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            els.nativeInstallBox.classList.remove('hidden');
+        });
+
+        els.triggerNativeInstall.addEventListener('click', async () => {
+            if (!deferredInstallPrompt) return;
+            deferredInstallPrompt.prompt();
+            const { outcome } = await deferredInstallPrompt.userChoice;
+            if (outcome === 'accepted') {
+                showToast('Installing app to your device...', 'success');
+                els.nativeInstallBox.classList.add('hidden');
+            }
+            deferredInstallPrompt = null;
+        });
+
+        function openInstallModal() {
+            els.installModal.classList.remove('hidden');
+            els.installModal.classList.add('flex');
+        }
+        function closeInstallModal() {
+            els.installModal.classList.add('hidden');
+            els.installModal.classList.remove('flex');
+        }
+
+        els.installApkBtn.addEventListener('click', openInstallModal);
+        els.closeInstallModal.addEventListener('click', closeInstallModal);
+        els.doneInstallModal.addEventListener('click', closeInstallModal);
+
+        els.copyGasUrlBtn.addEventListener('click', () => {
+            const tempInput = document.createElement('textarea');
+            tempInput.value = WEB_APP_URL;
+            document.body.appendChild(tempInput);
+            tempInput.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempInput);
+            showToast('Apps Script URL copied!', 'success');
+        });
+
+        els.downloadHtmlBtn.addEventListener('click', () => {
+            const htmlContent = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+            const blob = new Blob([htmlContent], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'gas-webapp-mobile.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showToast('Downloaded gas-webapp-mobile.html!', 'success');
+        });
+    </script>
+</body>
+</html>
